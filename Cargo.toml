@@ -1,5 +1,5 @@
 [package]
-name = "ebpf-rs"
+name = "bpf-rs"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,8 +7,6 @@ edition = "2021"
 
 [dependencies]
 bpf-ins = { path="../bpf-ins" }
-bpf-script = { path="../bpf-script" }
-btf = { path="../btf" }
 byteorder = "1.4.3"
 num_cpus = "0.2"
 peginator = "0.2.0"
