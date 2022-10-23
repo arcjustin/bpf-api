@@ -1,6 +1,6 @@
 pub mod bpf;
+pub mod collections;
 pub mod error;
-pub mod map;
 pub mod probes;
 pub mod prog;
 
@@ -8,7 +8,7 @@ mod platform;
 
 #[cfg(test)]
 mod tests {
-    use crate::map::{HashMap, Queue};
+    use crate::collections::{HashMap, Queue};
 
     #[test]
     fn hashmap_set_get() {
