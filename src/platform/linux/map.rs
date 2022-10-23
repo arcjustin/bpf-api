@@ -13,7 +13,7 @@ enum MapLookupFlags {
     Locked = 4,  /* spin_lock-ed map_lookup/map_update */
 }
 
-#[derive(Default)]
+#[derive(Copy, Clone, Default, Debug)]
 #[repr(C, align(8))]
 struct MapOperationAttr {
     pub map_fd: u32,
@@ -22,7 +22,7 @@ struct MapOperationAttr {
     pub flags: u64,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 #[repr(C, align(8))]
 struct MapAttr {
     pub map_type: u32,
@@ -59,6 +59,11 @@ pub enum MapType {
     Stack,
     SkStorage,
     DevMapHash,
+    StructOps,
+    RingBuf,
+    InodeStorage,
+    TaskStorage,
+    BloomFilter,
 }
 
 pub struct Map<K: Copy + Default + Sized, V: Copy + Default + Sized> {
@@ -87,11 +92,16 @@ impl<K: Copy + Default + Sized, V: Copy + Default + Sized> Map<K, V> {
     }
 
     pub fn get(&self, key: &K) -> Result<V, Error> {
+        let key_ptr = if size_of::<K>() == 0 {
+            0
+        } else {
+            key as *const K as u64
+        };
         let mut val = V::default();
 
         let attr = MapOperationAttr {
-            map_fd: self.fd,
-            key: key as *const K as u64,
+            map_fd: self.fd.into(),
+            key: key_ptr,
             val: &mut val as *mut V as u64,
             flags: 0,
         };
@@ -104,9 +114,15 @@ impl<K: Copy + Default + Sized, V: Copy + Default + Sized> Map<K, V> {
     }
 
     pub fn set(&self, key: &K, val: &V) -> Result<(), Error> {
+        let key_ptr = if size_of::<K>() == 0 {
+            0
+        } else {
+            key as *const K as u64
+        };
+
         let attr = MapOperationAttr {
-            map_fd: self.fd,
-            key: key as *const K as u64,
+            map_fd: self.fd.into(),
+            key: key_ptr,
             val: val as *const V as u64,
             flags: MapLookupFlags::Any as u64,
         };
@@ -119,9 +135,15 @@ impl<K: Copy + Default + Sized, V: Copy + Default + Sized> Map<K, V> {
     }
 
     pub fn del(&self, key: &K) -> Result<(), Error> {
+        let key_ptr = if size_of::<K>() == 0 {
+            0
+        } else {
+            key as *const K as u64
+        };
+
         let attr = MapOperationAttr {
-            map_fd: self.fd,
-            key: key as *const K as u64,
+            map_fd: self.fd.into(),
+            key: key_ptr,
             val: 0,
             flags: 0,
         };
@@ -130,6 +152,28 @@ impl<K: Copy + Default + Sized, V: Copy + Default + Sized> Map<K, V> {
             Err(e)
         } else {
             Ok(())
+        }
+    }
+
+    pub fn get_and_del(&self, key: &K) -> Result<V, Error> {
+        let key_ptr = if size_of::<K>() == 0 {
+            0
+        } else {
+            key as *const K as u64
+        };
+        let mut val = V::default();
+
+        let attr = MapOperationAttr {
+            map_fd: self.fd.into(),
+            key: key_ptr,
+            val: &mut val as *mut V as u64,
+            flags: 0,
+        };
+
+        if let Err(e) = attr.call_bpf(Command::MapLookupAndDeleteElem) {
+            Err(e)
+        } else {
+            Ok(val)
         }
     }
 
