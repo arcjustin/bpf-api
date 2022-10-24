@@ -8,7 +8,7 @@ mod platform;
 
 #[cfg(test)]
 mod tests {
-    use crate::collections::{HashMap, Queue};
+    use crate::collections::{Array, HashMap, Queue};
 
     #[test]
     fn hashmap_set_get() {
@@ -46,5 +46,21 @@ mod tests {
 
         /* make sure queue is now empty */
         assert!(matches!(queue.pop(), Err(_)));
+    }
+
+    #[test]
+    fn array_set_get() {
+        const ARRAY_SIZE: u32 = 10;
+        let array = Array::<u32>::create(ARRAY_SIZE).unwrap();
+
+        for i in 0..ARRAY_SIZE {
+            let val = i + 100;
+            assert!(matches!(array.get(i), Ok(0)));
+            assert!(matches!(array.set(i, val), Ok(_)));
+            match array.get(i) {
+                Ok(v) => assert_eq!(v, val),
+                Err(e) => panic!("array.get() failed: {}", e),
+            }
+        }
     }
 }
