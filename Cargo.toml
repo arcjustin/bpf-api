@@ -1,12 +1,19 @@
 [package]
-name = "bpf-rs"
+name = "bpf-api"
 version = "0.1.0"
 edition = "2021"
+categories = ["api-bindings", "os"]
+homepage = "https://github.com/arcjustin/bpf-sys"
+keywords = ["linux", "bpf", "instructions", "bytecode", "ebpf" ]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/arcjustin/bpf-sys"
+description = "Idomatic Rust bindings for eBPF programs, probes, and maps."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bpf-ins = { path="../bpf-ins" }
+bpf-ins = "0.6.0"
 byteorder = "1.4.3"
 num_cpus = "0.2"
 peginator = "0.2.0"
