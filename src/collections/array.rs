@@ -6,20 +6,72 @@ pub struct Array<V: Copy + Default + Sized> {
 }
 
 impl<V: Copy + Default + Sized> Array<V> {
+    /// Creates a new BPF array with `entries` elements. The kernel
+    /// zero-initializes all elements on creation.
+    ///
+    /// # Arguments
+    ///
+    /// * `entries` - The number of elements in the array.
+    ///
+    /// # Example
+    /// ```
+    /// use bpf_api::collections::Array;
+    ///
+    /// let array = Array::<u32>::create(10).expect("Failed to create array");
+    /// ```
     pub fn create(entries: u32) -> Result<Self, Error> {
         Ok(Self {
             map: Map::create(MapType::Array, entries)?,
         })
     }
 
-    pub fn get(&self, el: u32) -> Result<V, Error> {
-        self.map.get(&el)
+    /// Retrieves the value for a given element.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - The element index to retrieve.
+    ///
+    /// # Example
+    /// ```
+    /// use bpf_api::collections::Array;
+    ///
+    /// let array = Array::<u32>::create(10).expect("Failed to create array");
+    /// assert_eq!(array.get(5).expect("Failed to get element 5"), 0);
+    /// ```
+    pub fn get(&self, index: u32) -> Result<V, Error> {
+        self.map.get(&index)
     }
 
-    pub fn set(&self, el: u32, val: V) -> Result<(), Error> {
-        self.map.set(&el, &val)
+    /// Sets the value at a given index.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - The element index to retrieve.
+    /// * `value` - The new value.
+    ///
+    /// # Example
+    /// ```
+    /// use bpf_api::collections::Array;
+    ///
+    /// let array = Array::<u32>::create(10).expect("Failed to create array");
+    /// assert_eq!(array.get(5).expect("Failed to get element 5"), 0);
+    /// assert!(matches!(array.set(5, 10), Ok(_)));
+    /// assert_eq!(array.get(5).expect("Failed to get element 5"), 10);
+    /// ```
+    pub fn set(&self, index: u32, value: V) -> Result<(), Error> {
+        self.map.set(&index, &value)
     }
 
+    /// Retrieve the BPF identifier for this map. This is the underlying file
+    /// descriptor that's used in eBPF programs.
+    ///
+    /// # Example
+    /// ```
+    /// use bpf_api::collections::Array;
+    ///
+    /// let array = Array::<u32>::create(10).expect("Failed to create array");
+    /// array.get_identifier();
+    /// ```
     pub fn get_identifier(&self) -> u32 {
         self.map.get_identifier()
     }
