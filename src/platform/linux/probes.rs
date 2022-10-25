@@ -27,6 +27,11 @@ pub struct Probe {
 }
 
 impl Probe {
+    /// Create a probe object from a given program.
+    ///
+    /// # Arguments
+    ///
+    /// * `program` - The program to use as a probe.
     pub fn create(program: Program) -> Self {
         Self {
             program,
@@ -34,6 +39,7 @@ impl Probe {
         }
     }
 
+    /// Attaches/enables the probe.
     pub fn attach(&mut self) -> Result<(), Error> {
         let attr = self.program.get_attr();
         match attr.prog_type {
@@ -94,6 +100,7 @@ impl Probe {
         Ok(())
     }
 
+    /// Detaches/disables the probe.
     pub fn detach(&mut self) -> Result<(), Error> {
         if let Some(fds) = &self.attach_fds {
             for fd in fds {
