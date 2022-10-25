@@ -68,10 +68,22 @@ pub enum ProgramType {
 
 #[derive(Clone)]
 pub struct ProgramAttr {
+    /// The BTF id of the function that this program is to be attached to. Mutually-exclusive with
+    /// the `attach_name` field.
     pub attach_btf_id: Option<u32>,
+
+    /// The name of the function that this program is to be attached to. Mutually-exclusive with
+    /// the `attach_btf_id` field.
     pub attach_name: Option<String>,
+
+    /// The type of attachment.
     pub expected_attach_type: Option<AttachType>,
+
+    /// An optional name for the program.
     pub prog_name: [u8; 16],
+
+    /// The type of program. Only certain program types can be attached to certain names/btf ids,
+    /// so this field and the `attach_*` fields need to be coordinated properly.
     pub prog_type: ProgramType,
 }
 
