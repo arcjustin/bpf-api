@@ -1,1 +1,1 @@
-pub use crate::platform::Probe;
+pub use crate::platform::{AttachType, Probe};

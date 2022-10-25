@@ -1,4 +1,3 @@
-pub mod bpf;
 pub mod collections;
 pub mod error;
 pub mod probes;
