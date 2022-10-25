@@ -100,17 +100,14 @@ impl<K: Copy + Default + Sized, V: Copy + Default + Sized> Map<K, V> {
         let mut val = V::default();
 
         let attr = MapOperationAttr {
-            map_fd: self.fd.into(),
+            map_fd: self.fd,
             key: key_ptr,
             val: &mut val as *mut V as u64,
             flags: 0,
         };
 
-        if let Err(e) = attr.call_bpf(Command::MapLookupElem) {
-            Err(e)
-        } else {
-            Ok(val)
-        }
+        attr.call_bpf(Command::MapLookupElem)?;
+        Ok(val)
     }
 
     pub fn set(&self, key: &K, val: &V) -> Result<(), Error> {
@@ -121,17 +118,14 @@ impl<K: Copy + Default + Sized, V: Copy + Default + Sized> Map<K, V> {
         };
 
         let attr = MapOperationAttr {
-            map_fd: self.fd.into(),
+            map_fd: self.fd,
             key: key_ptr,
             val: val as *const V as u64,
             flags: MapLookupFlags::Any as u64,
         };
 
-        if let Err(e) = attr.call_bpf(Command::MapUpdateElem) {
-            Err(e)
-        } else {
-            Ok(())
-        }
+        attr.call_bpf(Command::MapUpdateElem)?;
+        Ok(())
     }
 
     pub fn del(&self, key: &K) -> Result<(), Error> {
@@ -142,17 +136,14 @@ impl<K: Copy + Default + Sized, V: Copy + Default + Sized> Map<K, V> {
         };
 
         let attr = MapOperationAttr {
-            map_fd: self.fd.into(),
+            map_fd: self.fd,
             key: key_ptr,
             val: 0,
             flags: 0,
         };
 
-        if let Err(e) = attr.call_bpf(Command::MapDeleteElem) {
-            Err(e)
-        } else {
-            Ok(())
-        }
+        attr.call_bpf(Command::MapDeleteElem)?;
+        Ok(())
     }
 
     pub fn get_and_del(&self, key: &K) -> Result<V, Error> {
@@ -164,17 +155,14 @@ impl<K: Copy + Default + Sized, V: Copy + Default + Sized> Map<K, V> {
         let mut val = V::default();
 
         let attr = MapOperationAttr {
-            map_fd: self.fd.into(),
+            map_fd: self.fd,
             key: key_ptr,
             val: &mut val as *mut V as u64,
             flags: 0,
         };
 
-        if let Err(e) = attr.call_bpf(Command::MapLookupAndDeleteElem) {
-            Err(e)
-        } else {
-            Ok(val)
-        }
+        attr.call_bpf(Command::MapLookupAndDeleteElem)?;
+        Ok(val)
     }
 
     pub fn get_identifier(&self) -> u32 {

@@ -13,7 +13,7 @@ use std::mem::size_of;
 const DYNAMIC_PMU_PATH_KPROBE: &str = "/sys/bus/event_source/devices/";
 
 pub fn get_pmu_typeid(name: &str) -> Result<u32, Error> {
-    if name.contains("/") {
+    if name.contains('/') {
         return Err(Error::InvalidArgument);
     }
 
