@@ -14,4 +14,4 @@ description = "Idomatic Rust bindings for eBPF programs, probes, and maps."
 
 [dependencies]
 bpf-ins = "0.6.1"
-num_cpus = "0.2"
+num_cpus = "1.13"
