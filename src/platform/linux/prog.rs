@@ -83,10 +83,19 @@ pub struct Program {
 impl Program {
     const LICENSE: &'static str = "GPL\0";
 
-    pub fn create<W: Write>(
+    /// Creates a program with the given attributes and instructions. Optionally,
+    /// an object implementing the Write trait can be passed in that receives the
+    /// kernel eBPF logging output.
+    ///
+    /// # Arguments
+    ///
+    /// * `attr` - The program attributes.
+    /// * `instructions` - The raw eBPF instructions describing the program.
+    /// * `log_out` - The logger object.
+    pub fn create(
         attr: &ProgramAttr,
         instructions: &[u64],
-        log_out: &mut W,
+        log_out: Option<&mut dyn Write>,
     ) -> Result<Self, Error> {
         let mut buf = vec![0; 1 << 20];
 
@@ -127,7 +136,7 @@ impl Program {
 
         let r = bpf_attr.call_bpf(Command::ProgLoad);
 
-        if let Ok(s) = std::str::from_utf8(&buf) {
+        if let (Ok(s), Some(log_out)) = (std::str::from_utf8(&buf), log_out) {
             let _ = write!(log_out, "{}", s);
         }
 
@@ -140,10 +149,12 @@ impl Program {
         }
     }
 
+    /// Retrieves the attributes for the program.
     pub fn get_attr(&self) -> &ProgramAttr {
         &self.attr
     }
 
+    /// Retrieves the underlying fd for the program.
     pub fn get_fd(&self) -> u32 {
         self.fd
     }

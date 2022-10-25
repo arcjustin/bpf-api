@@ -6,8 +6,6 @@ use btf::traits::AddToBtf;
 use btf::BtfTypes;
 use btf_derive::AddToBtf;
 
-use std::io::stdout;
-
 #[repr(C, align(1))]
 #[derive(Copy, Clone, Default, Debug, AddToBtf)]
 struct ExecEntry {
@@ -19,6 +17,8 @@ struct ExecEntry {
 }
 
 fn main() {
+    println!("Initializing...");
+
     /*
      * Load types from the vmlinux BTF file and add the custom Rust type
      * to the database.
@@ -68,7 +68,7 @@ fn main() {
     };
 
     let bytecode = compiler.get_bytecode();
-    let program = Program::create(&attr, &bytecode, &mut stdout()).unwrap();
+    let program = Program::create(&attr, &bytecode, None).unwrap();
 
     /*
      * Create a probe and attach it.
@@ -84,6 +84,7 @@ fn main() {
         .to_string()
     }
 
+    println!("Reading executed programs from BPF queue...");
     loop {
         std::thread::sleep(std::time::Duration::from_secs(1));
 
