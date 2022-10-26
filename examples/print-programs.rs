@@ -1,5 +1,5 @@
 use bpf_api::collections::Queue;
-use bpf_api::probes::Probe;
+use bpf_api::probes::{AttachInfo, Probe};
 use bpf_api::prog::{Program, ProgramAttr, ProgramType};
 use bpf_script::Compiler;
 use btf::traits::AddToBtf;
@@ -60,11 +60,10 @@ fn main() {
      * Insert the program into the kernel with the intended attachment point.
      */
     let attr = ProgramAttr {
+        prog_name: None,
         prog_type: ProgramType::RawTracepoint,
-        attach_name: Some("sched_process_exec".into()),
-        prog_name: [0; 16],
-        attach_btf_id: None,
         expected_attach_type: None,
+        attach_btf_id: None,
     };
 
     let bytecode = compiler.get_bytecode();
@@ -73,8 +72,9 @@ fn main() {
     /*
      * Create a probe and attach it.
      */
-    let mut probe = Probe::create(program);
-    probe.attach().unwrap();
+    let attach_info = AttachInfo::RawTracepoint("sched_process_exec".into());
+    let mut probe = Probe::create(attach_info);
+    probe.attach(&program).unwrap();
 
     fn from_cstr(buf: &[u8]) -> String {
         String::from_utf8_lossy(match buf.iter().position(|c| *c == 0) {

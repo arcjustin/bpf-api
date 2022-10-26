@@ -68,23 +68,18 @@ pub enum ProgramType {
 
 #[derive(Clone)]
 pub struct ProgramAttr {
-    /// The BTF id of the function that this program is to be attached to. Mutually-exclusive with
-    /// the `attach_name` field.
-    pub attach_btf_id: Option<u32>,
-
-    /// The name of the function that this program is to be attached to. Mutually-exclusive with
-    /// the `attach_btf_id` field.
-    pub attach_name: Option<String>,
-
-    /// The type of attachment.
-    pub expected_attach_type: Option<AttachType>,
-
     /// An optional name for the program.
-    pub prog_name: [u8; 16],
+    pub prog_name: Option<String>,
 
     /// The type of program. Only certain program types can be attached to certain names/btf ids,
     /// so this field and the `attach_*` fields need to be coordinated properly.
     pub prog_type: ProgramType,
+
+    /// The type of attachment.
+    pub expected_attach_type: Option<AttachType>,
+
+    /// If the probe is being attached to a function using the BTF id, specify it here.
+    pub attach_btf_id: Option<u32>,
 }
 
 pub struct Program {
@@ -123,6 +118,16 @@ impl Program {
             0
         };
 
+        let mut prog_name: [u8; 16] = [0; 16];
+        if let Some(name) = &attr.prog_name {
+            for (i, c) in name.chars().enumerate() {
+                if i == 16 {
+                    break;
+                }
+                prog_name[i] = c as u8;
+            }
+        }
+
         let bpf_attr = BpfProgramAttr {
             prog_type: attr.prog_type as u32,
             insns: instructions.as_ptr() as u64,
@@ -133,7 +138,7 @@ impl Program {
             log_buf: buf.as_mut_ptr() as u64,
             kern_version: 0,
             prog_flags: 0,
-            prog_name: attr.prog_name,
+            prog_name,
             prog_ifindex: 0,
             expected_attach_type,
             prog_btf_fd: 0,

@@ -1,8 +1,10 @@
 use crate::error::Error;
 use crate::platform::linux::bpf::{CallBpf, Command};
 use crate::platform::linux::perf::{perf_event_attach, perf_event_enable, perf_event_open_by_name};
-use crate::platform::linux::prog::{Program, ProgramType};
+use crate::platform::linux::prog::Program;
 use crate::platform::linux::syscalls::{cbzero, close};
+
+use std::collections::HashMap;
 
 #[derive(Default)]
 #[repr(C, align(8))]
@@ -21,9 +23,16 @@ struct BpfLinkCreateAttr {
     pub target_btf_id: u32,
 }
 
+#[derive(Clone)]
+pub enum AttachInfo {
+    RawTracepoint(String),
+    KProbe((String, u64)),
+    UProbe((String, u64)),
+}
+
 pub struct Probe {
-    program: Program,
-    attach_fds: Option<Vec<u32>>,
+    attach_info: AttachInfo,
+    attach_fds: HashMap<u32, Vec<u32>>,
 }
 
 impl Probe {
@@ -31,43 +40,45 @@ impl Probe {
     ///
     /// # Arguments
     ///
-    /// * `program` - The program to use as a probe.
-    pub fn create(program: Program) -> Self {
+    /// * `attach_info` - Describes the type of probe and attributes.
+    pub fn create(attach_info: AttachInfo) -> Self {
         Self {
-            program,
-            attach_fds: None,
+            attach_info,
+            attach_fds: HashMap::new(),
         }
     }
 
-    /// Attaches/enables the probe.
-    pub fn attach(&mut self) -> Result<(), Error> {
-        let attr = self.program.get_attr();
-        match attr.prog_type {
-            ProgramType::Kprobe => self.attach_kprobe(),
-            _ => self.attach_raw_tracepoint(),
+    /// Attaches the given program to the probe.
+    pub fn attach(&mut self, program: &Program) -> Result<(), Error> {
+        let attach_info = self.attach_info.clone();
+        match &attach_info {
+            AttachInfo::RawTracepoint(name) => self.attach_raw_tracepoint(program, name),
+            AttachInfo::KProbe((name, addr)) => self.attach_probe(program, "kprobe", name, *addr),
+            AttachInfo::UProbe((name, addr)) => self.attach_probe(program, "uprobe", name, *addr),
         }
     }
 
-    fn attach_kprobe(&mut self) -> Result<(), Error> {
-        let attr = self.program.get_attr();
-
-        let perf_event_fds = match &attr.attach_name {
-            Some(name) => perf_event_open_by_name("kprobe", name)?,
-            None => return Err(Error::InvalidArgument),
-        };
+    fn attach_probe(
+        &mut self,
+        program: &Program,
+        probe_name: &str,
+        name: &str,
+        addr: u64,
+    ) -> Result<(), Error> {
+        let perf_event_fds = perf_event_open_by_name(probe_name, name, addr)?;
 
         let mut fds = vec![];
         for fd in perf_event_fds {
-            perf_event_attach(fd, self.program.get_fd())?;
+            perf_event_attach(fd, program.get_fd())?;
             perf_event_enable(fd)?;
             fds.push(fd);
         }
+        self.attach_fds.insert(program.get_fd(), fds);
 
-        self.attach_fds = Some(fds);
         Ok(())
     }
 
-    fn attach_raw_tracepoint(&mut self) -> Result<(), Error> {
+    fn attach_raw_tracepoint(&mut self, program: &Program, name: &str) -> Result<(), Error> {
         let mut bpf_attr = BpfRawTracepointOpenAttr::default();
 
         /*
@@ -77,44 +88,42 @@ impl Probe {
          */
         cbzero(&mut bpf_attr);
 
-        let attr = self.program.get_attr();
-
         /*
          * Assumes that String's internal representation of a string is
          * ascii.
          */
         let mut attach_name = String::from("");
-        let name = if let Some(n) = &attr.attach_name {
-            attach_name.push_str(n);
-            attach_name.push('\0');
-            attach_name.as_ptr() as u64
-        } else {
-            0
-        };
+        attach_name.push_str(name);
+        attach_name.push('\0');
 
-        bpf_attr.prog_fd = self.program.get_fd();
-        bpf_attr.name = name;
+        bpf_attr.prog_fd = program.get_fd();
+        bpf_attr.name = attach_name.as_ptr() as u64;
 
-        self.attach_fds = Some(vec![bpf_attr.call_bpf(Command::RawTracepointOpen)?]);
+        let fds = vec![bpf_attr.call_bpf(Command::RawTracepointOpen)?];
+        self.attach_fds.insert(program.get_fd(), fds);
 
         Ok(())
     }
 
-    /// Detaches/disables the probe.
-    pub fn detach(&mut self) -> Result<(), Error> {
-        if let Some(fds) = &self.attach_fds {
+    /// Attaches the program from the probe.
+    pub fn detach(&mut self, program: &Program) -> Result<(), Error> {
+        if let Some(fds) = self.attach_fds.get(&program.get_fd()) {
             for fd in fds {
                 close(*fd);
             }
         }
+        self.attach_fds.remove(&program.get_fd());
 
-        self.attach_fds = None;
         Ok(())
     }
 }
 
 impl Drop for Probe {
     fn drop(&mut self) {
-        let _ = self.detach();
+        for fds in self.attach_fds.values() {
+            for fd in fds {
+                close(*fd);
+            }
+        }
     }
 }

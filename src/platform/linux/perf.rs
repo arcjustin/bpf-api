@@ -49,7 +49,7 @@ struct PerfEventAttr {
     pub reserved: u16,
 }
 
-pub fn perf_event_open_by_name(kind: &str, name: &str) -> Result<Vec<u32>, Error> {
+pub fn perf_event_open_by_name(kind: &str, name: &str, addr: u64) -> Result<Vec<u32>, Error> {
     let mut attr = PerfEventAttr::default();
     cbzero(&mut attr);
 
@@ -59,6 +59,7 @@ pub fn perf_event_open_by_name(kind: &str, name: &str) -> Result<Vec<u32>, Error
     attr.event_type = get_pmu_typeid(kind)?;
     attr.size = size_of::<PerfEventAttr>() as u32;
     attr.probe_name = probe_name.as_ptr() as u64;
+    attr.probe_addr = addr;
 
     let mut fds = vec![];
     for i in 0..num_cpus::get() {
