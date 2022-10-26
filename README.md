@@ -16,6 +16,7 @@ For usage examples, see code located in [examples/](examples/) :
   |----------|-------------|
   |[array](examples/array.rs)| A short example using a BPF array|
   |[print-programs](examples/print-programs.rs)| A short example that attachs a probe to `sched_process_exec` and prints program executions|
+  |[user-tracer](examples/user-tracer.rs)| A short example that attachs a uprobe to cat's entry-point|
 
 ## TODO
 - Add ARM support.
