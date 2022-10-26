@@ -34,7 +34,7 @@ struct BpfProgramAttr {
 pub enum ProgramType {
     Unspec = 0,
     SocketFilter,
-    Kprobe,
+    KProbe,
     SchedCls,
     SchedAct,
     Tracepoint,

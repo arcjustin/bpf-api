@@ -54,7 +54,7 @@ fn main() {
      */
     let attr = ProgramAttr {
         prog_name: None,
-        prog_type: ProgramType::Kprobe,
+        prog_type: ProgramType::KProbe,
         expected_attach_type: None,
         attach_btf_id: None,
     };
