@@ -34,7 +34,7 @@ fn main() {
     /*
      * Create a shared queue and "capture" it in the compiler context.
      */
-    let queue = Queue::<ExecEntry>::create(10).unwrap();
+    let queue = Queue::<ExecEntry>::with_capacity(10).unwrap();
     compiler.capture("queue", queue.get_identifier().into());
 
     /*

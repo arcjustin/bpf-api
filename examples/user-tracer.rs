@@ -83,7 +83,7 @@ fn main() -> Result<()> {
     /*
      * Create a shared queue and "capture" it in the compiler context.
      */
-    let queue = Queue::<ExecEntry>::create(10).expect("Failed to create BPF queue");
+    let queue = Queue::<ExecEntry>::with_capacity(10).expect("Failed to create BPF queue");
     compiler.capture("queue", queue.get_identifier().into());
 
     /*

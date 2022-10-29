@@ -17,11 +17,11 @@ impl<V: Copy + Default + Sized> Array<V> {
     /// ```
     /// use bpf_api::collections::Array;
     ///
-    /// let array = Array::<u32>::create(10).expect("Failed to create array");
+    /// let array = Array::<u32>::with_capacity(10).expect("Failed to create array");
     /// ```
-    pub fn create(entries: u32) -> Result<Self, Error> {
+    pub fn with_capacity(entries: u32) -> Result<Self, Error> {
         Ok(Self {
-            map: Map::create(MapType::Array, entries)?,
+            map: Map::with_capacity(MapType::Array, entries)?,
         })
     }
 
@@ -35,7 +35,7 @@ impl<V: Copy + Default + Sized> Array<V> {
     /// ```
     /// use bpf_api::collections::Array;
     ///
-    /// let array = Array::<u32>::create(10).expect("Failed to create array");
+    /// let array = Array::<u32>::with_capacity(10).expect("Failed to create array");
     /// assert_eq!(array.get(5).expect("Failed to get element 5"), 0);
     /// ```
     pub fn get(&self, index: u32) -> Result<V, Error> {
@@ -53,7 +53,7 @@ impl<V: Copy + Default + Sized> Array<V> {
     /// ```
     /// use bpf_api::collections::Array;
     ///
-    /// let array = Array::<u32>::create(10).expect("Failed to create array");
+    /// let array = Array::<u32>::with_capacity(10).expect("Failed to create array");
     /// assert_eq!(array.get(5).expect("Failed to get element 5"), 0);
     /// assert!(matches!(array.set(5, 10), Ok(_)));
     /// assert_eq!(array.get(5).expect("Failed to get element 5"), 10);
@@ -69,7 +69,7 @@ impl<V: Copy + Default + Sized> Array<V> {
     /// ```
     /// use bpf_api::collections::Array;
     ///
-    /// let array = Array::<u32>::create(10).expect("Failed to create array");
+    /// let array = Array::<u32>::with_capacity(10).expect("Failed to create array");
     /// array.get_identifier();
     /// ```
     pub fn get_identifier(&self) -> u32 {

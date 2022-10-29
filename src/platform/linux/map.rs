@@ -73,7 +73,7 @@ pub struct Map<K: Copy + Default + Sized, V: Copy + Default + Sized> {
 }
 
 impl<K: Copy + Default + Sized, V: Copy + Default + Sized> Map<K, V> {
-    pub fn create(map_type: MapType, max_entries: u32) -> Result<Self, Error> {
+    pub fn with_capacity(map_type: MapType, max_entries: u32) -> Result<Self, Error> {
         let attr = MapAttr {
             map_type: map_type as u32,
             key_size: size_of::<K>() as u32,

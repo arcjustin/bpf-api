@@ -2,7 +2,7 @@ use bpf_api::collections::Array;
 
 fn main() {
     const ARRAY_SIZE: u32 = 10;
-    let array = Array::<u32>::create(ARRAY_SIZE).unwrap();
+    let array = Array::<u32>::with_capacity(ARRAY_SIZE).unwrap();
 
     for i in 0..ARRAY_SIZE {
         let val = i + 100;

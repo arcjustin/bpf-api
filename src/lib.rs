@@ -12,7 +12,7 @@ mod tests {
     #[test]
     fn hashmap_set_get() {
         let list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
-        let map = HashMap::<u32, [u8; 16]>::create(10).unwrap();
+        let map = HashMap::<u32, [u8; 16]>::with_capacity(10).unwrap();
         assert!(matches!(map.set(300, list), Ok(_)));
         assert!(matches!(map.get(300), Ok(_)));
         assert_eq!(map.get(300).unwrap(), list);
@@ -21,7 +21,7 @@ mod tests {
     #[test]
     fn queue_push_pop() {
         const QUEUE_SIZE: u32 = 10;
-        let queue = Queue::<u32>::create(QUEUE_SIZE).unwrap();
+        let queue = Queue::<u32>::with_capacity(QUEUE_SIZE).unwrap();
 
         /* Fill the queue to the max */
         for i in 0..10 {
@@ -50,7 +50,7 @@ mod tests {
     #[test]
     fn array_set_get() {
         const ARRAY_SIZE: u32 = 10;
-        let array = Array::<u32>::create(ARRAY_SIZE).unwrap();
+        let array = Array::<u32>::with_capacity(ARRAY_SIZE).unwrap();
 
         for i in 0..ARRAY_SIZE {
             let val = i + 100;
