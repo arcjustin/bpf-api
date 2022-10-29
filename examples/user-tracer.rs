@@ -1,27 +1,79 @@
+use anyhow::{Context, Result};
 use bpf_api::collections::Queue;
-use bpf_api::probes::{AttachInfo, Probe};
+use bpf_api::probes::{AttachInfo, AttachType, Probe};
 use bpf_api::prog::{Program, ProgramAttr, ProgramType};
 use bpf_script::Compiler;
 use btf::traits::AddToBtf;
 use btf::BtfTypes;
 use btf_derive::AddToBtf;
+use clap::Parser;
 
-#[repr(C, align(1))]
-#[derive(Copy, Clone, Default, Debug, AddToBtf)]
-struct ExecEntry {
-    pub uid_gid: u64,
-    pub comm: [u8; 16],
+fn get_function_address(image_path: &str, function: Option<&String>) -> Result<u64> {
+    let file = std::fs::read(image_path).context("Could not read file.")?;
+    let file_data = file.as_slice();
+
+    let mut file = elf::File::open_stream(file_data).expect("Could not parse ELF Header");
+
+    let (symtab, strtab) = file
+        .dynamic_symbol_table()
+        .context("Failed to read symbol table")?
+        .context("File contained no symbol table")?;
+
+    let function = if let Some(function) = function {
+        function
+    } else {
+        return Ok(file.ehdr.e_entry);
+    };
+
+    Ok(symtab
+        .iter()
+        .find(|s| {
+            let name = strtab
+                .get(s.st_name as usize)
+                .expect("Malformed symbol table");
+            name == function
+        })
+        .context("Failed to find function address")?
+        .st_value)
 }
 
-fn main() {
-    println!("Initializing...");
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    /// Path to a program or library to trace
+    image_path: String,
+
+    /// The function to trace; entry is used, if omitted
+    function: Option<String>,
+
+    /// Argument types (in order); used to format output
+    #[arg(short, long)]
+    arg: Vec<String>,
+}
+
+fn main() -> Result<()> {
+    let args = Args::parse();
+
+    /*
+     * Before anything, try to find the function address for (image_path, function)
+     */
+    let address = get_function_address(&args.image_path, args.function.as_ref())?;
 
     /*
      * Load types from the vmlinux BTF file and add the custom Rust type
      * to the database.
      */
-    let mut btf = BtfTypes::from_file("/sys/kernel/btf/vmlinux").unwrap();
-    ExecEntry::add_to_btf(&mut btf).unwrap();
+    #[repr(C, align(1))]
+    #[derive(Copy, Clone, Debug, Default, AddToBtf)]
+    struct ExecEntry {
+        pub uid_gid: u64,
+        pub args: [u64; 4],
+        pub strs: [[u8; 32]; 4],
+        pub comm: [u8; 16],
+    }
+
+    let mut btf = BtfTypes::from_file("/sys/kernel/btf/vmlinux").context("Failed to parse BTF")?;
+    ExecEntry::add_to_btf(&mut btf).context("Failed to add ExecEntry to BTF")?;
 
     /*
      * Create a BPF script compiler.
@@ -31,23 +83,31 @@ fn main() {
     /*
      * Create a shared queue and "capture" it in the compiler context.
      */
-    let queue = Queue::<ExecEntry>::create(10).unwrap();
+    let queue = Queue::<ExecEntry>::create(10).expect("Failed to create BPF queue");
     compiler.capture("queue", queue.get_identifier().into());
 
     /*
-     * Compile a program.
+     * Compile a program from a script, at run-time, and without bcc/llvm.
      */
     compiler
         .compile(
             r#"
-            fn()
+            fn(regs: &bpf_user_pt_regs_t)
                 entry: ExecEntry = 0
                 entry.uid_gid = get_current_uid_gid()
+                entry.args[0] = regs.di
+                entry.args[1] = regs.si
+                entry.args[2] = regs.dx
+                entry.args[3] = regs.cx
+                probe_read_str(&entry.strs[0], 32, regs.di)
+                probe_read_str(&entry.strs[1], 32, regs.si)
+                probe_read_str(&entry.strs[2], 32, regs.dx)
+                probe_read_str(&entry.strs[3], 32, regs.cx)
                 get_current_comm(&entry.comm, 16)
                 map_push_elem(queue, &entry, 0)
         "#,
         )
-        .expect("compilation failed");
+        .context("Failed to compile script")?;
 
     /*
      * Insert the program into the kernel with the intended attachment point.
@@ -55,19 +115,19 @@ fn main() {
     let attr = ProgramAttr {
         prog_name: None,
         prog_type: ProgramType::KProbe,
-        expected_attach_type: None,
+        expected_attach_type: Some(AttachType::PerfEvent),
         attach_btf_id: None,
     };
 
     let bytecode = compiler.get_bytecode();
-    let program = Program::create(&attr, &bytecode, None).unwrap();
+    let program = Program::create(&attr, &bytecode, None).expect("Failed to create program");
 
     /*
      * Create a probe and attach the program to it.
      */
-    let attach_info = AttachInfo::UProbe(("/usr/bin/cat".into(), 0x3200));
+    let attach_info = AttachInfo::UProbe((args.image_path, address));
     let mut probe = Probe::create(attach_info);
-    probe.attach(&program).unwrap();
+    probe.attach(&program).expect("Failed to attach program");
 
     fn from_cstr(buf: &[u8]) -> String {
         String::from_utf8_lossy(match buf.iter().position(|c| *c == 0) {
@@ -77,16 +137,38 @@ fn main() {
         .to_string()
     }
 
-    println!("Reading executed programs from BPF queue...");
+    fn format_arguments(args: &[String], entry: &ExecEntry) -> String {
+        let mut formatted = vec![];
+        for (i, arg_type) in args.iter().enumerate() {
+            match arg_type.as_str() {
+                "cstr" => formatted.push(format!("\"{}\"", from_cstr(&entry.strs[i]))),
+                "num" => formatted.push(entry.args[i].to_string()),
+                "hex" => formatted.push(format!("{:#0x}", entry.args[i])),
+                "ptr" => formatted.push(format!("{:#016x}", entry.args[i])),
+                fmt => panic!("Unknown formatter: {}", fmt),
+            }
+        }
+
+        formatted.join(", ")
+    }
+
+    println!("Reading from queue...");
     loop {
         std::thread::sleep(std::time::Duration::from_secs(1));
 
         while let Ok(entry) = queue.pop() {
+            let comm = from_cstr(&entry.comm);
+            if comm == "user-tracer" {
+                continue;
+            }
+
+            let args = format_arguments(&args.arg, &entry);
             println!(
-                "comm={}, gid={}, uid={}",
-                from_cstr(&entry.comm),
+                "comm={}, gid/uid={}/{}, args=[{}]",
+                comm,
                 entry.uid_gid >> 32,
                 entry.uid_gid as u32,
+                args,
             );
         }
     }
