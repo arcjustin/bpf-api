@@ -2,6 +2,8 @@ use std::fmt;
 use std::io::Error as IoError;
 use std::num::ParseIntError;
 
+// I like `thiserror` for definining custom error types. Has some nice
+// ergonomics over manual `From`/`Display` impls.
 #[derive(Debug)]
 pub enum Error {
     SystemError(i64),

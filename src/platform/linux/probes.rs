@@ -67,6 +67,7 @@ impl Probe {
     ) -> Result<(), Error> {
         let perf_event_fds = perf_event_open_by_name(probe_name, name, addr)?;
 
+        // You don't need this vec. you can just pass `perf_event_fds` below.
         let mut fds = vec![];
         for fd in perf_event_fds {
             perf_event_attach(fd, program.get_fd())?;
@@ -92,6 +93,7 @@ impl Probe {
          * Assumes that String's internal representation of a string is
          * ascii.
          */
+        // You could use `CString` for this.
         let mut attach_name = String::from("");
         attach_name.push_str(name);
         attach_name.push('\0');
@@ -99,6 +101,8 @@ impl Probe {
         bpf_attr.prog_fd = program.get_fd();
         bpf_attr.name = attach_name.as_ptr() as u64;
 
+        // Does this need to be a `Vec`? Could this just be a `[u32; 1]` on
+        // stack?
         let fds = vec![bpf_attr.call_bpf(Command::RawTracepointOpen)?];
         self.attach_fds.insert(program.get_fd(), fds);
 

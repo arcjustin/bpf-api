@@ -96,6 +96,11 @@ pub trait CallBpf {
     fn call_bpf(&self, cmd: Command) -> Result<u32, Error>;
 }
 
+// This seems to broad. I'm not sure the benefit impl implementing this for all
+// types, since there presumably is only a narrow number of types that this
+// would even work. Since there's a single definition for this method, you can
+// move the definition into the `trait` definition. And then you just need to do
+// `impl CallBpf for MyBpfType {}` to use `call_bpf`.
 impl<T> CallBpf for T {
     fn call_bpf(&self, cmd: Command) -> Result<u32, Error> {
         let r = bpf(cmd as u32, self as *const Self as *const u8, size_of::<T>());

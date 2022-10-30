@@ -6,6 +6,9 @@ use std::io::Write;
 
 #[derive(Default)]
 #[repr(C, align(8))]
+// This is a decent size type to be `Copy`. Not necessarily a problem, just
+// a potential oppurtunity for performance optimization in functions whether
+// this is passed by value or ref.
 #[derive(Copy, Clone)]
 struct BpfProgramAttr {
     pub prog_type: u32,
@@ -30,6 +33,7 @@ struct BpfProgramAttr {
     pub attach_btf_id: u32,
 }
 
+// This should probably have a `repr(uX)`
 #[derive(Copy, Clone)]
 pub enum ProgramType {
     Unspec = 0,

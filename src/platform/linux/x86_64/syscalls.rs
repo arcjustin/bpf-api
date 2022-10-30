@@ -15,6 +15,8 @@ pub fn cbzero<T>(s: &mut T) {
 #[inline]
 unsafe fn syscall1(n: u64, arg1: u64) -> i64 {
     let mut ret: i64;
+    // Not sure if these should be underscore prefixed or not to be idiomatic in
+    // this situation.
     let mut _ret_addr: u64;
     let mut _rflags: u64;
     asm!(

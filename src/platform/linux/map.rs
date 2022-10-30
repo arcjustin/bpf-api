@@ -6,6 +6,7 @@ use std::marker::PhantomData;
 use std::mem::size_of;
 
 #[allow(dead_code)]
+// Add a repr(uX)
 enum MapLookupFlags {
     Any = 0,     /* create new element or update existing */
     NoExist = 1, /* create new element if it didn't exist */
@@ -31,6 +32,9 @@ struct MapAttr {
     pub max_entries: u32,
 }
 
+// It may not matter, but a type like this might as well be `Copy` and
+// presumably should have a `repr(_)` attribute based on the data type used by
+// bpf.
 #[allow(dead_code)]
 pub enum MapType {
     Unspec = 0,
@@ -66,16 +70,35 @@ pub enum MapType {
     BloomFilter,
 }
 
-pub struct Map<K: Copy + Default + Sized, V: Copy + Default + Sized> {
+// I think you probably want to add `'static` bound to both `K` and `V`. Can't
+// imagine there's any concept of this working with lifetimes. Currently `&u8`
+// meets the bound requirements here for example.
+//
+// Also, it's common to not actually put the trait bounds on the struct and only
+// put them on the `impl`. In this case, I think it's probably fine, since this
+// type is meaningless without the bounds, but since the type can't be created
+// directly, the trait bounds on `impl` would prevent incorrect usage.
+//
+// Final comment related to this is whether the bounds need to be stricter. I
+// know I ran into issues with structs with padding. If that's guaranteed to be
+// an issue, I would consider adding the trait bound `bytemuck::NoUninit`. At
+// least, that's my preferred crate for these kind of requirements.
+//
+// Final comment, I think the `Sized` bound is implicit in this case. You need
+// to explicitly specify `?Sized` if you don't want a `Sized` bound.
+pub struct Map<K: Copy + Default, V: Copy + Default> {
     fd: u32,
     phantom1: PhantomData<K>,
     phantom2: PhantomData<V>,
 }
 
-impl<K: Copy + Default + Sized, V: Copy + Default + Sized> Map<K, V> {
+impl<K: Copy + Default, V: Copy + Default> Map<K, V> {
     pub fn with_capacity(map_type: MapType, max_entries: u32) -> Result<Self, Error> {
         let attr = MapAttr {
             map_type: map_type as u32,
+            // The safer approach here is `.try_into()?` to handle overflows.
+            // Can't imagine it's possible to have key or value 2^32 size, but
+            // `try_into` should get optimized away at compile time anyway.
             key_size: size_of::<K>() as u32,
             value_size: size_of::<V>() as u32,
             max_entries,
@@ -85,6 +108,9 @@ impl<K: Copy + Default + Sized, V: Copy + Default + Sized> Map<K, V> {
             Err(e) => Err(e),
             Ok(fd) => Ok(Self {
                 fd,
+                // This can actually just be `PhantomData` no need for type or
+                // function call, since its a unit struct and the type will be
+                // inferred.
                 phantom1: PhantomData::<K>::default(),
                 phantom2: PhantomData::<V>::default(),
             }),
@@ -170,7 +196,7 @@ impl<K: Copy + Default + Sized, V: Copy + Default + Sized> Map<K, V> {
     }
 }
 
-impl<K: Copy + Default + Sized, V: Copy + Default + Sized> Drop for Map<K, V> {
+impl<K: Copy + Default, V: Copy + Default> Drop for Map<K, V> {
     fn drop(&mut self) {
         close(self.fd);
     }
