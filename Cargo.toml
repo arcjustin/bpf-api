@@ -21,4 +21,4 @@ bpf-script = "0.1"
 btf = "0.3"
 btf-derive = "0.3"
 clap = { version = "4.0.18", features = ["derive"] }
-elf = "0.4.0"
+elf = "0.5.0"
