@@ -1,11 +1,11 @@
 use crate::error::Error;
 use crate::platform::{Map, MapType};
 
-pub struct Array<V: Copy + Default + Sized> {
+pub struct Array<V: Copy + Default> {
     map: Map<u32, V>,
 }
 
-impl<V: Copy + Default + Sized> Array<V> {
+impl<V: Copy + Default> Array<V> {
     /// Creates a new BPF array with `entries` elements. The kernel
     /// zero-initializes all elements on creation.
     ///

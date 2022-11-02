@@ -4,11 +4,11 @@ use crate::platform::{Map, MapType};
 #[derive(Copy, Clone, Default)]
 struct Void {}
 
-pub struct Queue<V: Copy + Default + Sized> {
+pub struct Queue<V: Copy + Default> {
     map: Map<Void, V>,
 }
 
-impl<V: Copy + Default + Sized> Queue<V> {
+impl<V: Copy + Default> Queue<V> {
     /// Creates a new BPF queue with `entries` elements. A queue works as
     /// a FIFO container: `push()` inserts an element to the back and `pop()`
     /// consumes an element from the front.

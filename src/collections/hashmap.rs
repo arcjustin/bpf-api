@@ -1,11 +1,11 @@
 use crate::error::Error;
 use crate::platform::{Map, MapType};
 
-pub struct HashMap<K: Copy + Default + Sized, V: Copy + Default + Sized> {
+pub struct HashMap<K: Copy + Default, V: Copy + Default> {
     map: Map<K, V>,
 }
 
-impl<K: Copy + Default + Sized, V: Copy + Default + Sized> HashMap<K, V> {
+impl<K: Copy + Default, V: Copy + Default> HashMap<K, V> {
     /// Creates a new BPF hashmap with `entries` elements.
     ///
     /// # Arguments

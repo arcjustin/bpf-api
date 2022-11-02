@@ -66,13 +66,13 @@ pub enum MapType {
     BloomFilter,
 }
 
-pub struct Map<K: Copy + Default + Sized, V: Copy + Default + Sized> {
+pub struct Map<K: Copy + Default, V: Copy + Default> {
     fd: u32,
     phantom1: PhantomData<K>,
     phantom2: PhantomData<V>,
 }
 
-impl<K: Copy + Default + Sized, V: Copy + Default + Sized> Map<K, V> {
+impl<K: Copy + Default, V: Copy + Default> Map<K, V> {
     pub fn with_capacity(map_type: MapType, max_entries: u32) -> Result<Self, Error> {
         let attr = MapAttr {
             map_type: map_type as u32,
@@ -170,7 +170,7 @@ impl<K: Copy + Default + Sized, V: Copy + Default + Sized> Map<K, V> {
     }
 }
 
-impl<K: Copy + Default + Sized, V: Copy + Default + Sized> Drop for Map<K, V> {
+impl<K: Copy + Default, V: Copy + Default> Drop for Map<K, V> {
     fn drop(&mut self) {
         close(self.fd);
     }
