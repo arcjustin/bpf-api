@@ -1,38 +1,25 @@
-use std::fmt;
+use thiserror::Error;
+
 use std::io::Error as IoError;
 use std::num::ParseIntError;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
+    #[error("a system error occurred")]
     SystemError(i64),
-    IoError(IoError),
-    ParseIntError(ParseIntError),
+
+    #[error("an IO error occurred")]
+    IoError(#[from] IoError),
+
+    #[error("an error occurred when parsing an integer")]
+    ParseIntError(#[from] ParseIntError),
+
+    #[error("this isn't implemented")]
     NotImplemented,
+
+    #[error("an invalid argument was given")]
     InvalidArgument,
+
+    #[error("value was out of range")]
     OutOfRange,
-}
-
-impl From<IoError> for Error {
-    fn from(err: IoError) -> Self {
-        Self::IoError(err)
-    }
-}
-
-impl From<ParseIntError> for Error {
-    fn from(err: ParseIntError) -> Self {
-        Self::ParseIntError(err)
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match &self {
-            Self::SystemError(n) => write!(f, "SystemError({})", n),
-            Self::IoError(e) => write!(f, "IoError({})", e),
-            Self::ParseIntError(e) => write!(f, "ParseIntError({})", e),
-            Self::NotImplemented => write!(f, "NotImplemented"),
-            Self::InvalidArgument => write!(f, "InvalidArgument"),
-            Self::OutOfRange => write!(f, "OutOfRange"),
-        }
-    }
 }
