@@ -22,6 +22,8 @@ struct MapOperationAttr {
     pub flags: u64,
 }
 
+impl CallBpf for MapOperationAttr {}
+
 #[derive(Default, Debug)]
 #[repr(C, align(8))]
 struct MapAttr {
@@ -30,6 +32,8 @@ struct MapAttr {
     pub value_size: u32,
     pub max_entries: u32,
 }
+
+impl CallBpf for MapAttr {}
 
 #[allow(dead_code)]
 pub enum MapType {

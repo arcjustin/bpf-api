@@ -93,12 +93,15 @@ pub enum Command {
 }
 
 pub trait CallBpf {
-    fn call_bpf(&self, cmd: Command) -> Result<u32, Error>;
-}
-
-impl<T> CallBpf for T {
-    fn call_bpf(&self, cmd: Command) -> Result<u32, Error> {
-        let r = bpf(cmd as u32, self as *const Self as *const u8, size_of::<T>());
+    fn call_bpf(&self, cmd: Command) -> Result<u32, Error>
+    where
+        Self: Sized,
+    {
+        let r = bpf(
+            cmd as u32,
+            self as *const Self as *const u8,
+            size_of::<Self>(),
+        );
         if r < 0 {
             Err(Error::SystemError(r))
         } else {

@@ -13,6 +13,8 @@ struct BpfRawTracepointOpenAttr {
     pub prog_fd: u32,
 }
 
+impl CallBpf for BpfRawTracepointOpenAttr {}
+
 #[derive(Default)]
 #[repr(C, align(8))]
 struct BpfLinkCreateAttr {
@@ -22,6 +24,8 @@ struct BpfLinkCreateAttr {
     pub flags: u32,
     pub target_btf_id: u32,
 }
+
+impl CallBpf for BpfLinkCreateAttr {}
 
 #[derive(Clone)]
 pub enum AttachInfo {

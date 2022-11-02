@@ -30,6 +30,8 @@ struct BpfProgramAttr {
     pub attach_btf_id: u32,
 }
 
+impl CallBpf for BpfProgramAttr {}
+
 #[derive(Copy, Clone)]
 pub enum ProgramType {
     Unspec = 0,
