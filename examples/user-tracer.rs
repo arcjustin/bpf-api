@@ -1,23 +1,28 @@
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use bpf_api::collections::Queue;
 use bpf_api::probes::{AttachInfo, AttachType, Probe};
 use bpf_api::prog::{Program, ProgramAttr, ProgramType};
-use bpf_script::Compiler;
-use btf::traits::AddToBtf;
-use btf::BtfTypes;
-use btf_derive::AddToBtf;
+use bpf_script::compiler::Compiler;
+use bpf_script_derive::AddToTypeDatabase;
+use bpf_script::types::{AddToTypeDatabase, TypeDatabase};
+use btf::Btf;
 use clap::Parser;
 
-fn get_function_address(image_path: &str, function: Option<&String>) -> Result<u64> {
+fn get_function_address(image_path: &str, function: Option<&String>, dynamic: bool) -> Result<u64> {
     let file = std::fs::read(image_path).context("Could not read file.")?;
     let file_data = file.as_slice();
 
     let mut file = elf::File::open_stream(file_data).expect("Could not parse ELF Header");
 
-    let (symtab, strtab) = file
-        .dynamic_symbol_table()
-        .context("Failed to read symbol table")?
-        .context("File contained no symbol table")?;
+    let (symtab, strtab) = if dynamic {
+        file.dynamic_symbol_table()
+            .context("Failed to read symbol table")?
+            .context("File contained no symbol table")?
+    } else {
+        file.symbol_table()
+            .context("Failed to read symbol table")?
+            .context("File contained no symbol table")?
+    };
 
     let function = if let Some(function) = function {
         function
@@ -57,14 +62,24 @@ fn main() -> Result<()> {
     /*
      * Before anything, try to find the function address for (image_path, function)
      */
-    let address = get_function_address(&args.image_path, args.function.as_ref())?;
+    let address = if let Ok(address) =
+        get_function_address(&args.image_path, args.function.as_ref(), false)
+    {
+        address
+    } else if let Ok(address) = get_function_address(&args.image_path, args.function.as_ref(), true)
+    {
+        address
+    } else {
+        bail!("Failed to find function address")
+    };
 
     /*
-     * Load types from the vmlinux BTF file and add the custom Rust type
-     * to the database.
+     * Create a custom type database and add the `ExecEntry` structure to it.
      */
+    let mut database = TypeDatabase::default();
+
     #[repr(C, align(1))]
-    #[derive(Copy, Clone, Debug, Default, AddToBtf)]
+    #[derive(Copy, Clone, Debug, Default, AddToTypeDatabase)]
     struct ExecEntry {
         pub uid_gid: u64,
         pub args: [u64; 4],
@@ -72,13 +87,18 @@ fn main() -> Result<()> {
         pub comm: [u8; 16],
     }
 
-    let mut btf = BtfTypes::from_file("/sys/kernel/btf/vmlinux").context("Failed to parse BTF")?;
-    ExecEntry::add_to_btf(&mut btf).context("Failed to add ExecEntry to BTF")?;
+    ExecEntry::add_to_database(&mut database)
+        .context("Failed to add ExecEntry to type database.")?;
+
+    let btf = Btf::from_file("/sys/kernel/btf/vmlinux").context("Failed to parse BTF")?;
+    database
+        .add_btf_types(&btf)
+        .context("Failed to add BTF types to database.")?;
 
     /*
      * Create a BPF script compiler.
      */
-    let mut compiler = Compiler::create(&btf);
+    let mut compiler = Compiler::create(&database);
 
     /*
      * Create a shared queue and "capture" it in the compiler context.

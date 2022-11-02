@@ -17,8 +17,8 @@ num_cpus = "1.0"
 
 [dev-dependencies]
 anyhow = "1.0.66"
-bpf-script = "0.1"
-btf = "0.3"
-btf-derive = "0.3"
+bpf-script = "0.5"
+bpf-script-derive = "0.5"
+btf = "0.4"
 clap = { version = "4.0.18", features = ["derive"] }
 elf = "0.4.0"
