@@ -44,6 +44,7 @@ impl RingMeta {
     }
 }
 
+/// An interface for using BPF ringbuffer maps.
 pub struct RingBuffer {
     capacity: usize,
     map: Map<Void, Void>,
@@ -55,7 +56,10 @@ impl RingBuffer {
     const PRODUCER_OFFSET: usize = Self::PAGE_SIZE;
     const BUFFER_OFFSET: usize = Self::PAGE_SIZE * 2;
 
-    /// Creates a new ring buffer with the given number of pages.
+    /// Creates a new ring buffer with the given number of pages. The capacity of
+    /// a BPF ring buffer has to be a power of 2 pages. The min value given is
+    /// rounded up to this capacity; `get_capacity` will return the actual allocated
+    /// capacity of the ring buffer.
     ///
     /// # Arguments
     ///

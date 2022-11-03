@@ -1,6 +1,7 @@
 use crate::error::Error;
 use crate::platform::{Map, MapType};
 
+/// An array that exposes an idiomatic Rust interface to an underlying BPF array.
 pub struct Array<V: Copy + Default> {
     map: Map<u32, V>,
 }

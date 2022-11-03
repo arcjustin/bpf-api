@@ -4,6 +4,7 @@ use crate::platform::{Map, MapType};
 #[derive(Copy, Clone, Default)]
 struct Void {}
 
+/// A queue that exposes an idiomatic Rust interface to an underlying BPF queue.
 pub struct Queue<V: Copy + Default> {
     map: Map<Void, V>,
 }
