@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 use std::io::Error as IoError;
-use std::num::ParseIntError;
+use std::num::{ParseIntError, TryFromIntError};
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -14,6 +14,12 @@ pub enum Error {
     #[error("an error occurred when parsing an integer")]
     ParseIntError(#[from] ParseIntError),
 
+    #[error("an error occurred when converting an integer")]
+    TryFromIntError(#[from] TryFromIntError),
+
+    #[error("unrecoverable error due to mutex poisoning")]
+    MutexPoisoned,
+
     #[error("this isn't implemented")]
     NotImplemented,
 
@@ -23,3 +29,5 @@ pub enum Error {
     #[error("value was out of range")]
     OutOfRange,
 }
+
+pub type Result<T> = std::result::Result<T, Error>;

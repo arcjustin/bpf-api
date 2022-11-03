@@ -1,9 +1,13 @@
 use crate::error::Error;
 use crate::platform::linux::bpf::{CallBpf, Command};
-use crate::platform::linux::syscalls::close;
+use crate::platform::linux::syscalls::{
+    close, mmap, munmap, MmapFlags, MmapProtection, MAP_FAILED,
+};
 
+use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::mem::size_of;
+use std::sync::Mutex;
 
 #[allow(dead_code)]
 enum MapLookupFlags {
@@ -70,8 +74,17 @@ pub enum MapType {
     BloomFilter,
 }
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+struct MappedArea {
+    offset: usize,
+    length: usize,
+    prot: MmapProtection,
+    flags: MmapFlags,
+}
+
 pub struct Map<K: Copy + Default, V: Copy + Default> {
     fd: u32,
+    mapped_areas: Mutex<HashMap<MappedArea, usize>>,
     phantom1: PhantomData<K>,
     phantom2: PhantomData<V>,
 }
@@ -89,6 +102,7 @@ impl<K: Copy + Default, V: Copy + Default> Map<K, V> {
             Err(e) => Err(e),
             Ok(fd) => Ok(Self {
                 fd,
+                mapped_areas: Default::default(),
                 phantom1: PhantomData::<K>::default(),
                 phantom2: PhantomData::<V>::default(),
             }),
@@ -172,10 +186,83 @@ impl<K: Copy + Default, V: Copy + Default> Map<K, V> {
     pub fn get_identifier(&self) -> u32 {
         self.fd
     }
+
+    pub fn get_map<T>(&self, offset: usize, count: usize) -> Result<&[T], Error> {
+        let length = std::mem::size_of::<T>() * count;
+        let prot = MmapProtection::Read;
+        let flags = MmapFlags::Shared;
+        let mapped_area = MappedArea {
+            offset,
+            length,
+            prot,
+            flags,
+        };
+
+        let mut mapped_areas = self.mapped_areas.lock().or(Err(Error::MutexPoisoned))?;
+        if let Some(buf) = mapped_areas.get(&mapped_area) {
+            return Ok(unsafe { std::slice::from_raw_parts(*buf as *const T, count) });
+        }
+
+        let buf = mmap(
+            0,
+            length,
+            prot as usize,
+            flags as usize,
+            self.fd.try_into()?,
+            offset,
+        );
+
+        if buf == MAP_FAILED {
+            return Err(Error::SystemError(buf));
+        }
+
+        mapped_areas.insert(mapped_area, buf as usize);
+        Ok(unsafe { std::slice::from_raw_parts(buf as *const T, count) })
+    }
+
+    pub fn get_map_mut<T>(&mut self, offset: usize, count: usize) -> Result<&mut [T], Error> {
+        let length = std::mem::size_of::<T>() * count;
+        let prot = MmapProtection::Write;
+        let flags = MmapFlags::Shared;
+        let mapped_area = MappedArea {
+            offset,
+            length,
+            prot,
+            flags,
+        };
+
+        let mut mapped_areas = self.mapped_areas.lock().or(Err(Error::MutexPoisoned))?;
+        if let Some(buf) = mapped_areas.get(&mapped_area) {
+            return Ok(unsafe { std::slice::from_raw_parts_mut(*buf as *mut T, count) });
+        }
+
+        let buf = mmap(
+            0,
+            length,
+            prot as usize,
+            flags as usize,
+            self.fd.try_into()?,
+            offset,
+        );
+
+        if buf == MAP_FAILED {
+            return Err(Error::SystemError(buf));
+        }
+
+        mapped_areas.insert(mapped_area, buf as usize);
+        Ok(unsafe { std::slice::from_raw_parts_mut(buf as *mut T, count) })
+    }
 }
 
 impl<K: Copy + Default, V: Copy + Default> Drop for Map<K, V> {
     fn drop(&mut self) {
         close(self.fd);
+        let mapped_areas = self
+            .mapped_areas
+            .lock()
+            .expect("failed to drop mapped areas");
+        for (area, buf) in mapped_areas.iter() {
+            munmap(*buf, area.length);
+        }
     }
 }

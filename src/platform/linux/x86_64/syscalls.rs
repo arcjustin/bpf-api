@@ -3,10 +3,35 @@ use std::ptr;
 
 enum SyscallNumber {
     Close = 3,
+    Mmap = 9,
+    Munmap = 11,
     Ioctl = 16,
     PerfEventOpen = 298,
     Bpf = 321,
 }
+
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum MmapProtection {
+    Read = 0x01,
+    Write = 0x02,
+    Exec = 0x04,
+    Sem = 0x08,
+    GrowsDown = 0x1000000,
+    GrowsUp = 0x2000000,
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum MmapFlags {
+    Type = 0x0f,
+    Shared = 0x01,
+    Private = 0x02,
+    Fixed = 0x10,
+    Anonymous = 0x20,
+}
+
+pub const MAP_FAILED: isize = isize::min_value();
 
 pub fn cbzero<T>(s: &mut T) {
     unsafe { std::ptr::write_bytes(s as *mut T, 0, 1) };
@@ -21,6 +46,23 @@ unsafe fn syscall1(n: usize, arg1: usize) -> isize {
         "syscall",
         inlateout("rax") n as isize => ret,
         in("rdi") arg1,
+        out("rcx") _ret_addr,
+        out("r11") _rflags,
+        options(nostack, preserves_flags)
+    );
+    ret
+}
+
+#[inline]
+unsafe fn syscall2(n: usize, arg1: usize, arg2: usize) -> isize {
+    let mut ret: isize;
+    let mut _ret_addr: usize;
+    let mut _rflags: usize;
+    asm!(
+        "syscall",
+        inlateout("rax") n as isize => ret,
+        in("rdi") arg1,
+        in("rsi") arg2,
         out("rcx") _ret_addr,
         out("r11") _rflags,
         options(nostack, preserves_flags)
@@ -66,6 +108,35 @@ unsafe fn syscall5(
         in("rdx") arg3,
         in("r10") arg4,
         in("r8") arg5,
+        out("rcx") _ret_addr,
+        out("r11") _rflags,
+        options(nostack, preserves_flags)
+    );
+    ret
+}
+
+#[inline]
+unsafe fn syscall6(
+    n: usize,
+    arg1: usize,
+    arg2: usize,
+    arg3: usize,
+    arg4: usize,
+    arg5: usize,
+    arg6: usize,
+) -> isize {
+    let mut ret: isize;
+    let mut _ret_addr: usize;
+    let mut _rflags: usize;
+    asm!(
+        "syscall",
+        inlateout("rax") n as isize => ret,
+        in("rdi") arg1,
+        in("rsi") arg2,
+        in("rdx") arg3,
+        in("r10") arg4,
+        in("r8") arg5,
+        in("r9") arg6,
         out("rcx") _ret_addr,
         out("r11") _rflags,
         options(nostack, preserves_flags)
@@ -144,4 +215,44 @@ pub fn perf_event_enable(probe_fd: u32) -> isize {
  */
 pub fn close(fd: u32) -> isize {
     unsafe { syscall1(SyscallNumber::Close as usize, fd as usize) }
+}
+
+/// Stub for invoking an mmap system call
+///
+/// # Arguments
+///
+/// * `addr` - The address that should be mapped.
+/// * `length` - The length to map (must be multiple of PAGE_SIZE).
+/// * `prot` - The page protections.
+/// * `flags` - Flags to control the mapping.
+/// * `offset` - The offset to map.
+pub fn mmap(
+    addr: usize,
+    length: usize,
+    prot: usize,
+    flags: usize,
+    fd: usize,
+    offset: usize,
+) -> isize {
+    unsafe {
+        syscall6(
+            SyscallNumber::Mmap as usize,
+            addr,
+            length,
+            prot,
+            flags,
+            fd,
+            offset,
+        )
+    }
+}
+
+/// Stub for invoking an munmap system call
+///
+/// # Arguments
+///
+/// * `addr` - The address that should be mapped.
+/// * `length` - The length to map (must be multiple of PAGE_SIZE).
+pub fn munmap(addr: usize, length: usize) -> isize {
+    unsafe { syscall2(SyscallNumber::Munmap as usize, addr, length) }
 }
