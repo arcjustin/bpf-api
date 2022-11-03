@@ -21,6 +21,6 @@ thiserror = "1.0.37"
 anyhow = "1.0.66"
 bpf-script = "0.5"
 bpf-script-derive = "0.5"
-btf = "0.4"
+btf = "0.5"
 clap = { version = "4.0.18", features = ["derive"] }
 elf = "0.4.0"
