@@ -1,6 +1,7 @@
 use crate::error::Error;
 use crate::platform::{Map, MapType};
 
+/// A hashmap that exposes an idiomatic Rust interface to an underlying BPF hashmap.
 pub struct HashMap<K: Copy + Default, V: Copy + Default> {
     map: Map<K, V>,
 }
@@ -10,7 +11,7 @@ impl<K: Copy + Default, V: Copy + Default> HashMap<K, V> {
     ///
     /// # Arguments
     ///
-    /// * `entries` - The number of elements in the array.
+    /// * `entries` - The number of elements in the hashmap.
     ///
     /// # Example
     /// ```
@@ -54,10 +55,10 @@ impl<K: Copy + Default, V: Copy + Default> HashMap<K, V> {
     ///
     /// let hashmap = HashMap::<u32, u32>::with_capacity(10).expect("Failed to create hashmap");
     /// assert!(matches!(hashmap.get(1000), Err(_)));
-    /// assert!(matches!(hashmap.set(1000, 0xdeadbeef), Ok(_)));
+    /// assert!(matches!(hashmap.insert(1000, 0xdeadbeef), Ok(_)));
     /// assert!(matches!(hashmap.get(1000), Ok(0xdeadbeef)));
     /// ```
-    pub fn set(&self, key: K, val: V) -> Result<(), Error> {
+    pub fn insert(&self, key: K, val: V) -> Result<(), Error> {
         self.map.set(&key, &val)
     }
 
@@ -73,12 +74,12 @@ impl<K: Copy + Default, V: Copy + Default> HashMap<K, V> {
     ///
     /// let hashmap = HashMap::<u32, u32>::with_capacity(10).expect("Failed to create hashmap");
     /// assert!(matches!(hashmap.get(1000), Err(_)));
-    /// assert!(matches!(hashmap.set(1000, 0xdeadbeef), Ok(_)));
+    /// assert!(matches!(hashmap.insert(1000, 0xdeadbeef), Ok(_)));
     /// assert!(matches!(hashmap.get(1000), Ok(0xdeadbeef)));
-    /// assert!(matches!(hashmap.del(1000), Ok(_)));
-    /// assert!(matches!(hashmap.del(1000), Err(_)));
+    /// assert!(matches!(hashmap.remove(1000), Ok(_)));
+    /// assert!(matches!(hashmap.remove(1000), Err(_)));
     /// ```
-    pub fn del(&self, key: K) -> Result<(), Error> {
+    pub fn remove(&self, key: K) -> Result<(), Error> {
         self.map.del(&key)
     }
 
@@ -89,7 +90,7 @@ impl<K: Copy + Default, V: Copy + Default> HashMap<K, V> {
     /// ```
     /// use bpf_api::collections::HashMap;
     ///
-    /// let hashmap = HashMap::<u32, u32>::with_capacity(10).expect("Failed to create array");
+    /// let hashmap = HashMap::<u32, u32>::with_capacity(10).expect("Failed to create hashmap");
     /// hashmap.get_identifier();
     /// ```
     pub fn get_identifier(&self) -> u32 {

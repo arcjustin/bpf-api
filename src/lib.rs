@@ -10,10 +10,10 @@ mod tests {
     use crate::collections::{Array, HashMap, Queue};
 
     #[test]
-    fn hashmap_set_get() {
+    fn hashmap_insert_get() {
         let list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
         let map = HashMap::<u32, [u8; 16]>::with_capacity(10).unwrap();
-        assert!(matches!(map.set(300, list), Ok(_)));
+        assert!(matches!(map.insert(300, list), Ok(_)));
         assert!(matches!(map.get(300), Ok(_)));
         assert_eq!(map.get(300).unwrap(), list);
     }
