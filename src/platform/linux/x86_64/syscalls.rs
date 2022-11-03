@@ -13,13 +13,13 @@ pub fn cbzero<T>(s: &mut T) {
 }
 
 #[inline]
-unsafe fn syscall1(n: u64, arg1: u64) -> i64 {
-    let mut ret: i64;
-    let mut _ret_addr: u64;
-    let mut _rflags: u64;
+unsafe fn syscall1(n: usize, arg1: usize) -> isize {
+    let mut ret: isize;
+    let mut _ret_addr: usize;
+    let mut _rflags: usize;
     asm!(
         "syscall",
-        inlateout("rax") n as i64 => ret,
+        inlateout("rax") n as isize => ret,
         in("rdi") arg1,
         out("rcx") _ret_addr,
         out("r11") _rflags,
@@ -29,13 +29,13 @@ unsafe fn syscall1(n: u64, arg1: u64) -> i64 {
 }
 
 #[inline]
-unsafe fn syscall3(n: u64, arg1: u64, arg2: u64, arg3: u64) -> i64 {
-    let mut ret: i64;
-    let mut _ret_addr: u64;
-    let mut _rflags: u64;
+unsafe fn syscall3(n: usize, arg1: usize, arg2: usize, arg3: usize) -> isize {
+    let mut ret: isize;
+    let mut _ret_addr: usize;
+    let mut _rflags: usize;
     asm!(
         "syscall",
-        inlateout("rax") n as i64 => ret,
+        inlateout("rax") n as isize => ret,
         in("rdi") arg1,
         in("rsi") arg2,
         in("rdx") arg3,
@@ -47,13 +47,20 @@ unsafe fn syscall3(n: u64, arg1: u64, arg2: u64, arg3: u64) -> i64 {
 }
 
 #[inline]
-unsafe fn syscall5(n: u64, arg1: u64, arg2: u64, arg3: u64, arg4: u64, arg5: u64) -> i64 {
-    let mut ret: i64;
-    let mut _ret_addr: u64;
-    let mut _rflags: u64;
+unsafe fn syscall5(
+    n: usize,
+    arg1: usize,
+    arg2: usize,
+    arg3: usize,
+    arg4: usize,
+    arg5: usize,
+) -> isize {
+    let mut ret: isize;
+    let mut _ret_addr: usize;
+    let mut _rflags: usize;
     asm!(
         "syscall",
-        inlateout("rax") n as i64 => ret,
+        inlateout("rax") n as isize => ret,
         in("rdi") arg1,
         in("rsi") arg2,
         in("rdx") arg3,
@@ -69,7 +76,7 @@ unsafe fn syscall5(n: u64, arg1: u64, arg2: u64, arg3: u64, arg4: u64, arg5: u64
 /*
  * bpf()
  */
-pub fn bpf(cmd: u32, attr: *const u8, size: usize) -> i64 {
+pub fn bpf(cmd: u32, attr: *const u8, size: usize) -> isize {
     unsafe {
         /*
          * regardless of the size you pass in to bpf(), the kernel assumes the memory
@@ -87,10 +94,10 @@ pub fn bpf(cmd: u32, attr: *const u8, size: usize) -> i64 {
         ptr::copy(attr, buf.as_mut_ptr() as *mut _, size);
 
         syscall3(
-            SyscallNumber::Bpf as u64,
-            cmd as u64,
-            &buf as *const u8 as u64,
-            BPF_ATTR_SIZE as u64,
+            SyscallNumber::Bpf as usize,
+            cmd as usize,
+            &buf as *const u8 as usize,
+            BPF_ATTR_SIZE as usize,
         )
     }
 }
@@ -98,15 +105,15 @@ pub fn bpf(cmd: u32, attr: *const u8, size: usize) -> i64 {
 /*
  * perf_event_open()
  */
-pub fn perf_event_open(attr: *const u8, pid: u32, cpu: u32, gid: u32, flags: u32) -> i64 {
+pub fn perf_event_open(attr: *const u8, pid: u32, cpu: u32, gid: u32, flags: u32) -> isize {
     unsafe {
         syscall5(
-            SyscallNumber::PerfEventOpen as u64,
-            attr as u64,
-            pid as u64,
-            cpu as u64,
-            gid as u64,
-            flags as u64,
+            SyscallNumber::PerfEventOpen as usize,
+            attr as usize,
+            pid as usize,
+            cpu as usize,
+            gid as usize,
+            flags as usize,
         )
     }
 }
@@ -114,13 +121,13 @@ pub fn perf_event_open(attr: *const u8, pid: u32, cpu: u32, gid: u32, flags: u32
 /*
  * ioctl(probe_fd, PERF_EVENT_IOC_SET_BPF, prog_fd)
  */
-pub fn perf_event_attach(probe_fd: u32, prog_fd: u32) -> i64 {
+pub fn perf_event_attach(probe_fd: u32, prog_fd: u32) -> isize {
     unsafe {
         syscall3(
-            SyscallNumber::Ioctl as u64,
-            probe_fd as u64,
+            SyscallNumber::Ioctl as usize,
+            probe_fd as usize,
             0x40042408,
-            prog_fd as u64,
+            prog_fd as usize,
         )
     }
 }
@@ -128,13 +135,13 @@ pub fn perf_event_attach(probe_fd: u32, prog_fd: u32) -> i64 {
 /*
  * ioctl(probe_fd, PERF_EVENT_IOC_ENABLE, 0)
  */
-pub fn perf_event_enable(probe_fd: u32) -> i64 {
-    unsafe { syscall3(SyscallNumber::Ioctl as u64, probe_fd as u64, 0x2400, 0) }
+pub fn perf_event_enable(probe_fd: u32) -> isize {
+    unsafe { syscall3(SyscallNumber::Ioctl as usize, probe_fd as usize, 0x2400, 0) }
 }
 
 /*
  * close()
  */
-pub fn close(fd: u32) -> i64 {
-    unsafe { syscall1(SyscallNumber::Close as u64, fd as u64) }
+pub fn close(fd: u32) -> isize {
+    unsafe { syscall1(SyscallNumber::Close as usize, fd as usize) }
 }

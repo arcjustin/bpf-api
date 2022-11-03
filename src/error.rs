@@ -6,7 +6,7 @@ use std::num::ParseIntError;
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("a system error occurred")]
-    SystemError(i64),
+    SystemError(isize),
 
     #[error("an IO error occurred")]
     IoError(#[from] IoError),
