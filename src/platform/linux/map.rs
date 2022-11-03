@@ -90,6 +90,12 @@ pub struct Map<K: Copy + Default, V: Copy + Default> {
 }
 
 impl<K: Copy + Default, V: Copy + Default> Map<K, V> {
+    /// Create a generic map with the given capacity.
+    ///
+    /// # Arguments
+    ///
+    /// * `map_type` - The type of BPF map to create.
+    /// * `max_entries` - The number of entries in the map.
     pub fn with_capacity(map_type: MapType, max_entries: u32) -> Result<Self, Error> {
         let attr = MapAttr {
             map_type: map_type as u32,
@@ -109,6 +115,12 @@ impl<K: Copy + Default, V: Copy + Default> Map<K, V> {
         }
     }
 
+    /// Gets an entry from the map by key, in the case of a hash this is the hash key,
+    /// for arrays, this is an index, for stacks/queues, this is null.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key.
     pub fn get(&self, key: &K) -> Result<V, Error> {
         let key_ptr = if size_of::<K>() == 0 {
             0
@@ -128,6 +140,15 @@ impl<K: Copy + Default, V: Copy + Default> Map<K, V> {
         Ok(val)
     }
 
+    /// Sets an entry in the map by key/value. For hashes, the key refers to the
+    /// hash key and value is the value it maps to. For arrays, th key is an index
+    /// and the value is the new value at that index. For queues and stacks, the
+    /// key is void/unused and the value is pushed into the container.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key.
+    /// * `val` - The value for the key.
     pub fn set(&self, key: &K, val: &V) -> Result<(), Error> {
         let key_ptr = if size_of::<K>() == 0 {
             0
@@ -146,6 +167,12 @@ impl<K: Copy + Default, V: Copy + Default> Map<K, V> {
         Ok(())
     }
 
+    /// Deletes an entry from the map by key, in the case of a hash this is the hash key,
+    /// for arrays, this is an index, for stacks/queues, this is null.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key.
     pub fn del(&self, key: &K) -> Result<(), Error> {
         let key_ptr = if size_of::<K>() == 0 {
             0
@@ -164,6 +191,12 @@ impl<K: Copy + Default, V: Copy + Default> Map<K, V> {
         Ok(())
     }
 
+    /// Gets and Deletes an entry from the map by key, in the case of a hash this is the
+    /// hash key, for arrays, this is an index, for stacks/queues, this is null.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key.
     pub fn get_and_del(&self, key: &K) -> Result<V, Error> {
         let key_ptr = if size_of::<K>() == 0 {
             0
@@ -183,10 +216,15 @@ impl<K: Copy + Default, V: Copy + Default> Map<K, V> {
         Ok(val)
     }
 
+    /// Gets the underlying identifer for the map. This is passed as the argument to
+    /// BPF map helper functions.
     pub fn get_identifier(&self) -> u32 {
         self.fd
     }
 
+    /// For containers that are mmapable: ringbuffers and arrays, this maps a portion
+    /// or the full container depending on offset/count. A slice is returned which is
+    /// backed by a buffer shared with the kernel.
     pub fn get_map<T>(&self, offset: usize, count: usize) -> Result<&[T], Error> {
         let length = std::mem::size_of::<T>() * count;
         let prot = MmapProtection::Read;
@@ -220,6 +258,9 @@ impl<K: Copy + Default, V: Copy + Default> Map<K, V> {
         Ok(unsafe { std::slice::from_raw_parts(buf as *const T, count) })
     }
 
+    /// For containers that are mmapable: ringbuffers and arrays, this maps a portion
+    /// or the full container depending on offset/count. A mut slice is returned which is
+    /// backed by a buffer shared with the kernel.
     pub fn get_map_mut<T>(&mut self, offset: usize, count: usize) -> Result<&mut [T], Error> {
         let length = std::mem::size_of::<T>() * count;
         let prot = MmapProtection::Write;
