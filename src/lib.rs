@@ -1,3 +1,35 @@
+//! [![Build Status](https://github.com/arcjustin/bpf-api/workflows/build/badge.svg)](https://github.com/arcjustin/bpf-api/actions?query=workflow%3Abuild)
+//! [![crates.io](https://img.shields.io/crates/v/bpf-api.svg)](https://crates.io/crates/bpf-api)
+//! [![mio](https://docs.rs/bpf-api/badge.svg)](https://docs.rs/bpf-api/)
+//! [![Lines of Code](https://tokei.rs/b1/github/arcjustin/bpf-api?category=code)](https://tokei.rs/b1/github/arcjustin/bpf-api?category=code)
+//!
+//! Idomatic Rust bindings for eBPF programs, probes, and maps. Want write in-line eBPF without relying on external dependencies, like shelling out to bcc/llvm? Check out this crate's sister crates:
+//!
+//! * [btf](https://crates.io/crates/btf)
+//! * [bpf-script](https://crates.io/crates/bpf-script)
+//!
+//! ## Usage
+//! ```
+//! use bpf_api::collections::Array;
+//!
+//! const ARRAY_SIZE: u32 = 10;
+//! let array = Array::<u32>::with_capacity(ARRAY_SIZE).unwrap();
+//!
+//! for i in 0..ARRAY_SIZE {
+//!     let val = i + 100;
+//!     assert!(matches!(array.get(i), Ok(0)));
+//!     assert!(matches!(array.set(i, val), Ok(_)));
+//!     match array.get(i) {
+//!         Ok(v) => assert_eq!(v, val),
+//!         Err(e) => panic!("array.get() failed: {}", e),
+//!     }
+//! }
+//! ```
+//!
+//! ## License
+//!
+//! * [MIT license](http://opensource.org/licenses/MIT)
+
 pub mod collections;
 pub mod error;
 pub mod probes;

@@ -19,5 +19,10 @@ For usage examples, see code located in [examples/](examples/) :
   |[user-tracer](examples/user-tracer.rs)| Probes a given image path and symbol name using uprobes|
 
 ## TODO
-- Add ARM support.
-- Make probe attachment easier / write convenience macros.
+
+* Add ARM support.
+* Make probe attachment easier / write convenience macros.
+
+## License
+
+* [MIT license](http://opensource.org/licenses/MIT)
