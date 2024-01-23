@@ -7,17 +7,14 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
-    name: Build and Test
+  build:
+    name: Build 
     strategy:
       fail-fast: false
       matrix:
         platform: [ubuntu-latest]
         toolchain: [stable]
     runs-on: ${{ matrix.platform }}
-    container:
-      image: node:14.16
-      options: --user root
 
     steps:
       - name: Checkout Sources

@@ -18,7 +18,7 @@
 //! for i in 0..ARRAY_SIZE {
 //!     let val = i + 100;
 //!     assert!(matches!(array.get(i), Ok(0)));
-//!     assert!(matches!(array.set(i, val), Ok(_)));
+//!     assert!(array.set(i, val).is_ok());
 //!     match array.get(i) {
 //!         Ok(v) => assert_eq!(v, val),
 //!         Err(e) => panic!("array.get() failed: {}", e),
@@ -45,8 +45,8 @@ mod tests {
     fn hashmap_insert_get() {
         let list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
         let map = HashMap::<u32, [u8; 16]>::with_capacity(10).unwrap();
-        assert!(matches!(map.insert(300, list), Ok(_)));
-        assert!(matches!(map.get(300), Ok(_)));
+        assert!(map.insert(300, list).is_ok());
+        assert!(map.get(300).is_ok());
         assert_eq!(map.get(300).unwrap(), list);
     }
 
@@ -57,11 +57,11 @@ mod tests {
 
         /* Fill the queue to the max */
         for i in 0..10 {
-            assert!(matches!(queue.push(i + 100), Ok(_)));
+            assert!(queue.push(i + 100).is_ok());
         }
 
         /* make sure the next push fails */
-        assert!(matches!(queue.push(1000), Err(_)));
+        assert!(queue.push(1000).is_err());
 
         /* test front and make sure it doesn't consume */
         assert!(matches!(queue.front(), Ok(100)));
@@ -76,7 +76,7 @@ mod tests {
         }
 
         /* make sure queue is now empty */
-        assert!(matches!(queue.pop(), Err(_)));
+        assert!(queue.pop().is_err());
     }
 
     #[test]
@@ -87,7 +87,7 @@ mod tests {
         for i in 0..ARRAY_SIZE {
             let val = i + 100;
             assert!(matches!(array.get(i), Ok(0)));
-            assert!(matches!(array.set(i, val), Ok(_)));
+            assert!(array.set(i, val).is_ok());
             match array.get(i) {
                 Ok(v) => assert_eq!(v, val),
                 Err(e) => panic!("array.get() failed: {}", e),
