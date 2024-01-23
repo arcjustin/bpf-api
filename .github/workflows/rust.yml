@@ -20,14 +20,8 @@ jobs:
       options: --user root
 
     steps:
-      - name: Update Packages
-        run: apt-get update
-
-      - name: Install Required Packages
-        run: apt-get -y install wget && apt-get -y install build-essential
-
       - name: Checkout Sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Rust Toolchain
         uses: actions-rs/toolchain@v1.0.7
