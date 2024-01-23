@@ -115,7 +115,7 @@ impl Program {
         };
 
         let attach_btf_id = if let Some(id) = attr.attach_btf_id {
-            id as u32
+            id
         } else {
             0
         };
@@ -162,7 +162,7 @@ impl Program {
         match r {
             Err(e) => Err(e),
             Ok(r) => Ok(Self {
-                fd: r as u32,
+                fd: r,
                 attr: attr.clone(),
             }),
         }

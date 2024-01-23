@@ -168,7 +168,7 @@ pub fn bpf(cmd: u32, attr: *const u8, size: usize) -> isize {
             SyscallNumber::Bpf as usize,
             cmd as usize,
             &buf as *const u8 as usize,
-            BPF_ATTR_SIZE as usize,
+            BPF_ATTR_SIZE,
         )
     }
 }

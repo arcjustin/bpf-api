@@ -85,7 +85,7 @@ pub fn perf_event_open_by_name(kind: &str, name: &str, addr: u64) -> Result<Vec<
  */
 pub fn perf_event_attach(probe_fd: u32, prog_fd: u32) -> Result<(), Error> {
     match arch_perf_event_attach(probe_fd, prog_fd) {
-        n if n == 0 => Ok(()),
+        0 => Ok(()),
         n => Err(Error::SystemError(n)),
     }
 }
@@ -95,7 +95,7 @@ pub fn perf_event_attach(probe_fd: u32, prog_fd: u32) -> Result<(), Error> {
  */
 pub fn perf_event_enable(probe_fd: u32) -> Result<(), Error> {
     match arch_perf_event_enable(probe_fd) {
-        n if n == 0 => Ok(()),
+        0 => Ok(()),
         n => Err(Error::SystemError(n)),
     }
 }

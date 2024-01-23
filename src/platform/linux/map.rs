@@ -109,8 +109,8 @@ impl<K: Copy + Default, V: Copy + Default> Map<K, V> {
             Ok(fd) => Ok(Self {
                 fd,
                 mapped_areas: Default::default(),
-                phantom1: PhantomData::<K>::default(),
-                phantom2: PhantomData::<V>::default(),
+                phantom1: PhantomData::<K>,
+                phantom2: PhantomData::<V>,
             }),
         }
     }
